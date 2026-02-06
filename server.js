@@ -5,12 +5,11 @@ const cors = require("cors");
 const { getLiveMatches, getMatchScorecard } = require("./services/cricketApi");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
 /* =========================
-   ROOT
+   ROOT ROUTE
 ========================= */
 app.get("/", (req, res) => {
   res.send("CrickBakes backend is running 🍞🏏");
@@ -21,42 +20,33 @@ app.get("/", (req, res) => {
 ========================= */
 app.get("/live-matches", async (req, res) => {
   try {
+    console.log("RAPID KEY =>", process.env.RAPIDAPI_KEY);
+    console.log("RAPID HOST =>", process.env.RAPIDAPI_HOST);
+
     const raw = await getLiveMatches(
       process.env.RAPIDAPI_KEY,
       process.env.RAPIDAPI_HOST
     );
 
-    const matches = [];
-
-    raw.typeMatches?.forEach(type => {
-      type.seriesMatches?.forEach(series => {
-        if (!series.seriesAdWrapper) return;
-
-        series.seriesAdWrapper.matches?.forEach(match => {
-          matches.push({
-            matchId: match.matchInfo?.matchId,
-            team1: match.matchInfo?.team1?.teamName,
-            team2: match.matchInfo?.team2?.teamName,
-            status: match.matchInfo?.status
-          });
-        });
-      });
-    });
-
-    res.json(matches);
+    res.json(raw);
 
   } catch (error) {
-    console.error("Live Matches Error:", error.response?.data || error.message);
+    console.error(
+      "Live Matches Error:",
+      error.response?.data || error.message
+    );
     res.status(500).json({ error: "Failed to fetch matches" });
   }
 });
 
 /* =========================
-   MATCH SCORECARD (RAW SAFE)
+   MATCH SCORECARD
 ========================= */
 app.get("/match/:id", async (req, res) => {
   try {
     const matchId = req.params.id;
+
+    console.log("Fetching match ID:", matchId);
 
     const raw = await getMatchScorecard(
       matchId,
@@ -64,58 +54,21 @@ app.get("/match/:id", async (req, res) => {
       process.env.RAPIDAPI_HOST
     );
 
-    // Accept both scoreCard and scorecard
-    const scoreData = raw.scoreCard || raw.scorecard;
-
-    if (!scoreData) {
-      return res.status(404).json({
-        error: "Scorecard not available",
-        availableKeys: Object.keys(raw)
-      });
-    }
-
-    const innings = scoreData.map(inning => ({
-      inningsId: inning.inningsid,
-      team: inning.batteamname,
-      runs: inning.score,
-      wickets: inning.wickets,
-      overs: inning.overs,
-      batting: (inning.batsman || []).map(player => ({
-        name: player.name,
-        runs: player.runs,
-        balls: player.balls,
-        fours: player.fours,
-        sixes: player.sixes,
-        strikeRate: player.strkrate,
-        dismissal: player.outdec
-      })),
-      bowling: (inning.bowler || []).map(player => ({
-        name: player.name,
-        overs: player.overs,
-        maidens: player.maidens,
-        runs: player.runs,
-        wickets: player.wickets,
-        economy: player.economy
-      }))
-    }));
-
-    res.json({
-      matchId,
-      status: raw.status,
-      complete: raw.ismatchcomplete,
-      innings
-    });
+    res.json(raw);
 
   } catch (error) {
-    console.error("Scorecard Error:", error.response?.data || error.message);
+    console.error(
+      "Scorecard Error:",
+      error.response?.data || error.message
+    );
     res.status(500).json({ error: "Failed to fetch structured scorecard" });
   }
 });
 
 /* =========================
-   SERVER
+   SERVER START
 ========================= */
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

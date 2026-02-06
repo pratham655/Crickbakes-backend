@@ -18,11 +18,11 @@ async function getLiveMatches(apiKey, host) {
 }
 
 /* =========================
-   MATCH SCORECARD (REAL BATTING + BOWLING)
+   MATCH SCORECARD
 ========================= */
 async function getMatchScorecard(matchId, apiKey, host) {
   const response = await axios.get(
-    `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}/scard`,
+    `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}`,
     {
       headers: {
         "X-RapidAPI-Key": apiKey,
@@ -34,4 +34,8 @@ async function getMatchScorecard(matchId, apiKey, host) {
   return response.data;
 }
 
-module.exports = { getLiveMatches, getMatchScorecard };
+module.exports = {
+  getLiveMatches,
+  getMatchScorecard
+};
+
