@@ -57,15 +57,15 @@ app.get("/live-matches", async (req, res) => {
   }
 });
 
-/* =========================
-   MATCH SCORECARD (Structured)
+/* /* =========================
+   MATCH SCORECARD (Correct Endpoint)
 ========================= */
 app.get("/match/:id", async (req, res) => {
   try {
     const matchId = req.params.id;
 
     const response = await axios.get(
-      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}`,
+      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}/scard`,
       {
         headers: {
           "X-RapidAPI-Key": process.env.RAPIDAPI_KEY.trim(),
@@ -79,7 +79,7 @@ app.get("/match/:id", async (req, res) => {
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({
-      error: "Failed",
+      error: "Failed to fetch scorecard",
       real: error.response?.data || error.message
     });
   }
