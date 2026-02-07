@@ -74,28 +74,14 @@ app.get("/match/:id", async (req, res) => {
       }
     );
 
-    const raw = response.data;
-
-    if (!raw.scorecard || raw.scorecard.length === 0) {
-      return res.json({ message: "No scorecard yet" });
-    }
-
-    const structured = {
-      matchId: matchId,
-      status: raw.status,
-      innings: raw.scorecard.map(inn => ({
-        team: inn.batteamname,
-        runs: inn.score,
-        wickets: inn.wickets,
-        overs: inn.overs
-      }))
-    };
-
-    res.json(structured);
+    res.json(response.data);
 
   } catch (error) {
     console.error(error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch scorecard" });
+    res.status(500).json({
+      error: "Failed",
+      real: error.response?.data || error.message
+    });
   }
 });
 
