@@ -31,28 +31,40 @@ app.get("/env-test", (req, res) => {
 ========================= */
 app.get("/live-matches", async (req, res) => {
   try {
-    console.log("KEY:", process.env.RAPIDAPI_KEY);
-    console.log("HOST:", process.env.RAPIDAPI_HOST);
-
     const raw = await getLiveMatches(
       process.env.RAPIDAPI_KEY,
       process.env.RAPIDAPI_HOST
     );
 
-    res.json(raw);
+    const matches = [];
+
+    raw.typeMatches.forEach(type => {
+      type.seriesMatches.forEach(series => {
+        if (!series.seriesAdWrapper) return;
+
+        series.seriesAdWrapper.matches.forEach(match => {
+          matches.push({
+            matchId: match.matchInfo.matchId,
+            team1: match.matchInfo.team1.teamName,
+            team2: match.matchInfo.team2.teamName,
+            status: match.matchInfo.status,
+            venue: match.matchInfo.venueInfo.ground,
+            city: match.matchInfo.venueInfo.city
+          });
+        });
+      });
+    });
+
+    res.json(matches);
+
   } catch (error) {
-    console.error("=== LIVE MATCH ERROR ===");
-    console.error("Status:", error.response?.status);
-    console.error("Data:", error.response?.data);
-    console.error("Message:", error.message);
+    console.error("Live Matches Error:", error.response?.data || error.message);
 
     res.status(500).json({
-      error: "Failed to fetch matches",
-      realError: error.response?.data || error.message
+      error: "Failed to fetch matches"
     });
   }
 });
-
 /* =========================
    MATCH SCORECARD
 ========================= */
