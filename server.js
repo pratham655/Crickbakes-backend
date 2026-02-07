@@ -31,6 +31,9 @@ app.get("/env-test", (req, res) => {
 ========================= */
 app.get("/live-matches", async (req, res) => {
   try {
+    console.log("KEY:", process.env.RAPIDAPI_KEY);
+    console.log("HOST:", process.env.RAPIDAPI_HOST);
+
     const raw = await getLiveMatches(
       process.env.RAPIDAPI_KEY,
       process.env.RAPIDAPI_HOST
@@ -38,13 +41,14 @@ app.get("/live-matches", async (req, res) => {
 
     res.json(raw);
   } catch (error) {
-    console.error(
-      "Live Matches Error:",
-      error.response?.data || error.message
-    );
+    console.error("=== LIVE MATCH ERROR ===");
+    console.error("Status:", error.response?.status);
+    console.error("Data:", error.response?.data);
+    console.error("Message:", error.message);
 
     res.status(500).json({
-      error: "Failed to fetch matches"
+      error: "Failed to fetch matches",
+      realError: error.response?.data || error.message
     });
   }
 });
