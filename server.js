@@ -2,40 +2,35 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const { getLiveMatches, getMatchScorecard } = require("./services/cricketApi");
+const axios = require("axios");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
 /* =========================
-   ROOT ROUTE
+   ROOT
 ========================= */
 app.get("/", (req, res) => {
   res.send("CrickBakes backend is running 🍞🏏");
 });
 
 /* =========================
-   ENV TEST ROUTE
-========================= */
-app.get("/env-test", (req, res) => {
-  res.json({
-    rapidKeyLoaded: process.env.RAPIDAPI_KEY ? "YES" : "NO",
-    rapidHost: process.env.RAPIDAPI_HOST || "NOT FOUND"
-  });
-});
-
-/* =========================
-   LIVE MATCHES
+   LIVE MATCHES (Structured)
 ========================= */
 app.get("/live-matches", async (req, res) => {
   try {
-    const raw = await getLiveMatches(
-      process.env.RAPIDAPI_KEY,
-      process.env.RAPIDAPI_HOST
+    const response = await axios.get(
+      "https://cricbuzz-cricket.p.rapidapi.com/matches/v1/live",
+      {
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPIDAPI_KEY.trim(),
+          "X-RapidAPI-Host": process.env.RAPIDAPI_HOST.trim()
+        }
+      }
     );
 
+    const raw = response.data;
     const matches = [];
 
     raw.typeMatches.forEach(type => {
@@ -48,55 +43,75 @@ app.get("/live-matches", async (req, res) => {
             team1: match.matchInfo.team1.teamName,
             team2: match.matchInfo.team2.teamName,
             status: match.matchInfo.status,
-            venue: match.matchInfo.venueInfo.ground,
-            city: match.matchInfo.venueInfo.city
+            venue: match.matchInfo.venueInfo?.ground,
+            city: match.matchInfo.venueInfo?.city
           });
         });
       });
     });
 
     res.json(matches);
-
   } catch (error) {
-    console.error("Live Matches Error:", error.response?.data || error.message);
-
-    res.status(500).json({
-      error: "Failed to fetch matches"
-    });
+    console.error(error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch matches" });
   }
 });
+
 /* =========================
-   MATCH SCORECARD
+   MATCH SCORECARD (Structured)
 ========================= */
 app.get("/match/:id", async (req, res) => {
   try {
     const matchId = req.params.id;
 
-    const raw = await getMatchScorecard(
-      matchId,
-      process.env.RAPIDAPI_KEY,
-      process.env.RAPIDAPI_HOST
+    const response = await axios.get(
+      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}`,
+      {
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPIDAPI_KEY.trim(),
+          "X-RapidAPI-Host": process.env.RAPIDAPI_HOST.trim()
+        }
+      }
     );
 
-    res.json(raw);
+    const raw = response.data;
+
+    if (!raw.scoreCard) {
+      return res.json({ message: "No scorecard yet" });
+    }
+
+    const structured = {
+      matchId: matchId,
+      status: raw.status,
+      innings: raw.scoreCard.map(inn => ({
+        team: inn.batTeamDetails?.batTeamName,
+        runs: inn.scoreDetails?.runs,
+        wickets: inn.scoreDetails?.wickets,
+        overs: inn.scoreDetails?.overs,
+        batting: inn.batTeamDetails?.batsmenData
+          ? Object.values(inn.batTeamDetails.batsmenData).map(b => ({
+              name: b.batName,
+              runs: b.runs,
+              balls: b.balls,
+              fours: b.fours,
+              sixes: b.sixes,
+              dismissal: b.outDesc
+            }))
+          : []
+      }))
+    };
+
+    res.json(structured);
   } catch (error) {
-    console.error(
-      "Scorecard Error:",
-      error.response?.data || error.message
-    );
-
-    res.status(500).json({
-      error: "Failed to fetch structured scorecard"
-    });
+    console.error(error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch scorecard" });
   }
 });
 
-/* =========================
-   SERVER START
-========================= */
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
