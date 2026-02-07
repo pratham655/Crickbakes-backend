@@ -76,32 +76,23 @@ app.get("/match/:id", async (req, res) => {
 
     const raw = response.data;
 
-    if (!raw.scoreCard) {
+    if (!raw.scorecard || raw.scorecard.length === 0) {
       return res.json({ message: "No scorecard yet" });
     }
 
     const structured = {
       matchId: matchId,
       status: raw.status,
-      innings: raw.scoreCard.map(inn => ({
-        team: inn.batTeamDetails?.batTeamName,
-        runs: inn.scoreDetails?.runs,
-        wickets: inn.scoreDetails?.wickets,
-        overs: inn.scoreDetails?.overs,
-        batting: inn.batTeamDetails?.batsmenData
-          ? Object.values(inn.batTeamDetails.batsmenData).map(b => ({
-              name: b.batName,
-              runs: b.runs,
-              balls: b.balls,
-              fours: b.fours,
-              sixes: b.sixes,
-              dismissal: b.outDesc
-            }))
-          : []
+      innings: raw.scorecard.map(inn => ({
+        team: inn.batteamname,
+        runs: inn.score,
+        wickets: inn.wickets,
+        overs: inn.overs
       }))
     };
 
     res.json(structured);
+
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch scorecard" });
