@@ -74,26 +74,13 @@ app.get("/match/:id", async (req, res) => {
       }
     );
 
-    const raw = response.data;
 
-    // Handle both possible structures safely
-    const matchHeader = raw.matchHeader || raw.matchinfo || null;
-    const scoreCard = raw.scoreCard || raw.scorecard || null;
-
-    if (!matchHeader) {
-      return res.json({ message: "No match data found" });
-    }
-
-    res.json({
-      matchHeader,
-      scoreCard
-    });
+    res.json(response.data);
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
+    console.error("MATCH ERROR:", error.response?.data || error.message);
     res.status(500).json({
-      error: "Failed",
-      real: error.response?.data || error.message
+      error: "Failed to load match"
     });
   }
 });
