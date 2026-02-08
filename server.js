@@ -8,22 +8,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const CRIC_API_KEY = process.env.CRICAPI_KEY;
-
-/* =========================
-   ROOT
-========================= */
-app.get("/", (req, res) => {
-  res.send("CrickBakes backend is running 🍞🏏");
-});
-
 /* =========================
    ENV TEST
 ========================= */
 app.get("/env-test", (req, res) => {
   res.json({
-    cricApiLoaded: CRIC_API_KEY ? "YES" : "NO"
+    RAPIDAPI_KEY: process.env.RAPIDAPI_KEY ? "LOADED" : "NOT LOADED",
+    RAPIDAPI_HOST: process.env.RAPIDAPI_HOST || "NOT FOUND"
   });
+});
+
+/* =========================
+   ROOT
+========================= */
+app.get("/", (req, res) => {
+  res.send("CrickBakes backend running 🚀");
 });
 
 /* =========================
@@ -32,61 +31,43 @@ app.get("/env-test", (req, res) => {
 app.get("/live-matches", async (req, res) => {
   try {
     const response = await axios.get(
-      "https://api.cricapi.com/v1/currentMatches",
+      "https://cricbuzz-cricket.p.rapidapi.com/matches/v1/live",
       {
-        params: {
-          apikey: CRIC_API_KEY,
-          offset: 0
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+          "X-RapidAPI-Host": process.env.RAPIDAPI_HOST
         }
       }
     );
 
-    if (!response.data || !response.data.data) {
-      return res.json([]);
-    }
-
-    const matches = response.data.data.map(match => ({
-      matchId: match.id,
-      team1: match.teams?.[0] || "Team 1",
-      team2: match.teams?.[1] || "Team 2",
-      status: match.status,
-      venue: match.venue
-    }));
-
-    res.json(matches);
-
+    res.json(response.data);
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({
-      error: "Failed to fetch matches",
+      error: "Failed",
       real: error.response?.data || error.message
     });
   }
 });
 
 /* =========================
-   MATCH SCORECARD
+   MATCH DETAILS
 ========================= */
 app.get("/match/:id", async (req, res) => {
   try {
     const matchId = req.params.id;
 
     const response = await axios.get(
-      "https://api.cricapi.com/v1/match_scorecard",
+      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}`,
       {
-        params: {
-          apikey: CRIC_API_KEY,
-          id: matchId
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+          "X-RapidAPI-Host": process.env.RAPIDAPI_HOST
         }
       }
     );
 
-    if (!response.data || !response.data.data) {
-      return res.json({ message: "No scorecard yet" });
-    }
-
-    res.json(response.data.data);
-
+    res.json(response.data);
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({
@@ -97,8 +78,6 @@ app.get("/match/:id", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
