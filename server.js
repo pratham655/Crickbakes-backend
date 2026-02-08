@@ -77,8 +77,11 @@ app.get("/match/:id", async (req, res) => {
     res.json(response.data);
 
   } catch (error) {
-    console.error("Scorecard error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to load scorecard" });
+    console.error(error.response?.data || error.message);
+    res.status(500).json({
+      error: "Failed",
+      real: error.response?.data || error.message
+    });
   }
 });
 
