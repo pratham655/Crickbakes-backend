@@ -65,7 +65,7 @@ app.get("/match/:id", async (req, res) => {
     const matchId = req.params.id;
 
     const response = await axios.get(
-      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}/scard`,
+      `https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/${matchId}`,
       {
         headers: {
           "X-RapidAPI-Key": process.env.RAPIDAPI_KEY.trim(),
@@ -74,12 +74,25 @@ app.get("/match/:id", async (req, res) => {
       }
     );
 
-    res.json(response.data);
+    const raw = response.data;
+
+    // Handle both possible structures safely
+    const matchHeader = raw.matchHeader || raw.matchinfo || null;
+    const scoreCard = raw.scoreCard || raw.scorecard || null;
+
+    if (!matchHeader) {
+      return res.json({ message: "No match data found" });
+    }
+
+    res.json({
+      matchHeader,
+      scoreCard
+    });
 
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({
-      error: "Failed to fetch scorecard",
+      error: "Failed",
       real: error.response?.data || error.message
     });
   }
